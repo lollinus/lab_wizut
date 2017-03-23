@@ -31,3 +31,10 @@
 # Debug files
 *.dSYM/
 *.su
+/.markdown-preview.html
+/przyklad1/main
+*~
+/przyklad1/main_cross
+/przyklad2/main
+/przyklad3/main
+/przyklad4/main
