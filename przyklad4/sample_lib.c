@@ -23,6 +23,7 @@ int sample_function(int argc, char *argv[])
 		printf("%s ", argv[i]);
 	}
 	printf("\n");
+	return 0;
 }
 
 /*
