@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 
+static int global_counter;
+
 pid_t my_gettid()
 {
 	pid_t tid;
@@ -32,8 +34,21 @@ typedef int (*th_f)(int th, int id, int i);
 
 int s_print_id(int th, int id, int i)
 {
-	fprintf(stdout, "%11s: E: th=%0#10x id=%d print_id: %3d\n",
-		__func__, th, id, i);
+	global_counter++;
+	fprintf(stdout, "%11s: E: th=%0#10x id=%d print_id: %3d gc=%-4d\n",
+		__func__, th, id, i, global_counter);
+	global_counter--;
+}
+
+int m_print_id(int th, int id, int i)
+{
+	global_counter++;
+	fprintf(stdout, "%11s: E: th=%0#10x id=%d print_id: %3d gc=%-4d\n",
+		__func__, th, id, i, global_counter);
+	usleep(10);
+	global_counter--;
+	fprintf(stdout, "%11s: X: th=%0#10x id=%d print_id: %3d gc=%-4d\n",
+		__func__, th, id, i, global_counter);
 }
 
 typedef struct th_args_s {
@@ -68,11 +83,11 @@ void *thread_fn(void *arg)
 }
 
 th_args_t thread_args[] = {
-	{0, 0, 10, NULL},
+/*	{0, 0, 10, NULL}, */
 	{0, 0, 10, s_print_id},
-	{0, 0, 10, s_print_id},
-	{0, 0, 10, s_print_id},
-	{0, 0, 10, s_print_id},
+/*	{0, 0, 10, s_print_id}, */
+/*	{0, 0, 10, m_print_id}, */
+/*	{0, 0, 10, m_print_id}, */
 };
 
 int main(int argc, char **argv)
