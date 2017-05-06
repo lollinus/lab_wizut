@@ -8,6 +8,7 @@
 
 static int global_counter;
 char shared_buffer[50];
+pthread_mutex_t global_mtx = PTHREAD_MUTEX_INITIALIZER;
 
 pid_t my_gettid()
 {
@@ -45,14 +46,17 @@ typedef int (*th_f)(int th, int id, int i);
 
 int s_print_id(int th, int id, int i)
 {
+	pthread_mutex_lock(&global_mtx);
 	global_counter++;
-	fprintf(stdout, "%11s: E: th=%0#10x id=%d print_id: %3d gc=%-4d\n",
-		__func__, th, id, i, global_counter);
+	fprintf(stdout, "%11s: E: th=%0#10x id=%d print_id: %3d gc=%-4d sb=%s\n",
+		__func__, th, id, i, global_counter, shared_buffer);
 	global_counter--;
+	pthread_mutex_unlock(&global_mtx);
 }
 
 int m_print_id(int th, int id, int i)
 {
+	pthread_mutex_lock(&global_mtx);
 	global_counter++;
 	fprintf(stdout, "%11s: E: th=%-10x id=%d print_id: %3d gc=%-4d sb=%s\n",
 		__func__, th, id, i, global_counter, shared_buffer);
@@ -61,6 +65,7 @@ int m_print_id(int th, int id, int i)
 	global_counter--;
 	fprintf(stdout, "%11s: X: th=%-10x id=%d print_id: %3d gc=%-4d sb=%s\n",
 		__func__, th, id, i, global_counter, shared_buffer);
+	pthread_mutex_unlock(&global_mtx);
 }
 
 typedef struct th_args_s {
@@ -109,7 +114,9 @@ int main(int argc, char **argv)
 
 	memset(shared_buffer, '\0', ARRAY_SIZE(shared_buffer));
 
+	pthread_mutex_lock(&global_mtx);
 	SET_BUFFER(shared_buffer, "main");
+	pthread_mutex_unlock(&global_mtx);
 
 	for (i = 0; i < ARRAY_SIZE(thread_args); i++) {
 		LOG_DBG("starting thread %d sb=%s\n", i, shared_buffer);
