@@ -84,10 +84,10 @@ void *thread_fn(void *arg)
 
 th_args_t thread_args[] = {
 /*	{0, 0, 10, NULL}, */
-	{0, 0, 10, s_print_id},
 /*	{0, 0, 10, s_print_id}, */
-/*	{0, 0, 10, m_print_id}, */
-/*	{0, 0, 10, m_print_id}, */
+/*	{0, 0, 10, s_print_id}, */
+	{0, 0, 10, m_print_id},
+	{0, 0, 10, m_print_id},
 };
 
 int main(int argc, char **argv)
