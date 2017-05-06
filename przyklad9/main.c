@@ -4,8 +4,10 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <string.h>
 
 static int global_counter;
+char shared_buffer[50];
 
 pid_t my_gettid()
 {
@@ -28,6 +30,15 @@ pid_t my_gettid()
 			##__VA_ARGS__);					\
 	}while (0)
 
+#define SET_BUFFER(B, fmt, ...)						\
+	do {								\
+		int s = snprintf(B, ARRAY_SIZE(B), "%10s: " fmt,	\
+				 __func__, ##__VA_ARGS__);		\
+		if (s == ARRAY_SIZE(B)) {				\
+			B[ARRAY_SIZE(B)] = '\0';			\
+		}							\
+	} while(0)
+
 #define ARRAY_SIZE(a) sizeof(a)/sizeof((a)[0])
 
 typedef int (*th_f)(int th, int id, int i);
@@ -43,12 +54,13 @@ int s_print_id(int th, int id, int i)
 int m_print_id(int th, int id, int i)
 {
 	global_counter++;
-	fprintf(stdout, "%11s: E: th=%0#10x id=%d print_id: %3d gc=%-4d\n",
-		__func__, th, id, i, global_counter);
+	fprintf(stdout, "%11s: E: th=%-10x id=%d print_id: %3d gc=%-4d sb=%s\n",
+		__func__, th, id, i, global_counter, shared_buffer);
+	SET_BUFFER(shared_buffer, "th=%-10x id=%d i=%d", th, id, i);
 	usleep(10);
 	global_counter--;
-	fprintf(stdout, "%11s: X: th=%0#10x id=%d print_id: %3d gc=%-4d\n",
-		__func__, th, id, i, global_counter);
+	fprintf(stdout, "%11s: X: th=%-10x id=%d print_id: %3d gc=%-4d sb=%s\n",
+		__func__, th, id, i, global_counter, shared_buffer);
 }
 
 typedef struct th_args_s {
@@ -76,8 +88,8 @@ void *thread_fn(void *arg)
 		}
 		else
 		{
-			LOG_DBG("thread=%0#10lx id=%d function missing cnt=%d\n",
-				args->thid, args->id, i);
+			LOG_DBG("thread=%0#10lx id=%d function missing cnt=%d sb=%s\n",
+				args->thid, args->id, i, shared_buffer);
 		}
 	}
 }
@@ -95,25 +107,29 @@ int main(int argc, char **argv)
 	int i = 0;
 	int res;
 
+	memset(shared_buffer, '\0', ARRAY_SIZE(shared_buffer));
+
+	SET_BUFFER(shared_buffer, "main");
+
 	for (i = 0; i < ARRAY_SIZE(thread_args); i++) {
-		LOG_DBG("starting thread %d\n", i);
+		LOG_DBG("starting thread %d sb=%s\n", i, shared_buffer);
 		thread_args[i].id = i;
 		res = pthread_create(&thread_args[i].thid, NULL, thread_fn, &thread_args[i]);
 		if (res != 0) {
-			LOG_ERR("Thread id=%d create failed res=%d\n", i, res);
+			LOG_ERR("Thread id=%d create failed res=%d sb=%s\n", i, res, shared_buffer);
 		}
-		LOG_DBG("thread=%lx id=%d created\n", thread_args[i].thid, i);
+		LOG_DBG("thread=%lx id=%d created sb=%s\n", thread_args[i].thid, i, shared_buffer);
 	}
 
 	for (i = 0; i < 20; i++) {
 		s_print_id(getpid(), 0, i);
 	}
 
-	LOG_DBG("Waiting for threads to finish\n");
+	LOG_DBG("Waiting for threads to finish sb=%s\n", shared_buffer);
 	for (i = 0; i < ARRAY_SIZE(thread_args); i++) {
 		pthread_join(thread_args[i].thid, NULL);
 	}
 
-	LOG_DBG("all threads finished\n");
+	LOG_DBG("all threads finished sb=%s\n", shared_buffer);
 	return 0;
 }
