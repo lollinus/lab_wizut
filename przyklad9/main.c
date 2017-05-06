@@ -90,5 +90,15 @@ int main(int argc, char **argv)
 		LOG_DBG("thread=%lx id=%d created\n", thread_args[i].thid, i);
 	}
 
+	for (i = 0; i < 20; i++) {
+		s_print_id(getpid(), 0, i);
+	}
+
+	LOG_DBG("Waiting for threads to finish\n");
+	for (i = 0; i < ARRAY_SIZE(thread_args); i++) {
+		pthread_join(thread_args[i].thid, NULL);
+	}
+
+	LOG_DBG("all threads finished\n");
 	return 0;
 }
